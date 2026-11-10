@@ -32,6 +32,8 @@ if errorlevel 1 goto fallo
 "%VENV%\Scripts\python.exe" -m pip install --quiet --upgrade pip
 "%VENV%\Scripts\python.exe" -m pip install --quiet -r requirements.txt
 if errorlevel 1 goto fallo
+"%VENV%\Scripts\python.exe" -c "import markitdown" >nul 2>nul
+if errorlevel 1 goto sinruntime
 echo listo> "%VENV%\.listo"
 
 :ejecutar
@@ -42,6 +44,14 @@ goto fin
 echo.
 echo No se encontro una version compatible de Python (se necesita de 3.10 a 3.14).
 echo Instala Python 3.13 desde https://www.python.org/downloads/windows/ y vuelve a abrir este archivo.
+goto fin
+
+:sinruntime
+echo.
+echo Los componentes se instalaron, pero no pueden iniciar (error de DLL con numpy).
+echo Normalmente se arregla instalando "Microsoft Visual C++ Redistributable" x64:
+echo https://aka.ms/vs/17/release/vc_redist.x64.exe
+echo Instalalo, reinicia la PC y vuelve a abrir este archivo.
 goto fin
 
 :fallo

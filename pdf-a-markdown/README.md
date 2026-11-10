@@ -31,5 +31,6 @@ Pon esta carpeta completa (`pdf-a-markdown`) dentro de OneDrive. Las carpetas `E
 - Si subes un PDF con un nombre que ya existe, se guarda como `nombre (2).pdf`; nunca se pisa nada.
 - **PDFs escaneados** (imágenes sin texto): la app te avisa que no encontró texto. Para esos hace falta OCR (ver el plugin `markitdown-ocr` en el README principal del repo), que usa un servicio externo de pago.
 - El entorno de Python se guarda fuera de la carpeta (`%LOCALAPPDATA%\pdf-a-markdown` en Windows, `~/.local/share/pdf-a-markdown` en Mac/Linux), así OneDrive no sincroniza miles de archivos técnicos. En cada computadora nueva, la primera vez se prepara automáticamente.
+- **Error `DLL load failed while importing _multiarray_umath` (numpy) en Windows:** falta o está desactualizado el *Microsoft Visual C++ Redistributable*. Instala la versión x64 desde <https://aka.ms/vs/17/release/vc_redist.x64.exe>, reinicia la PC y vuelve a abrir `iniciar.bat`. Si persiste, ejecuta en cmd: `"%LOCALAPPDATA%\pdf-a-markdown\venv\Scripts\python.exe" -m pip install "numpy<2.3"`.
 - Para cambiar el puerto: `iniciar.bat --puerto 9000`.
 - Los PDFs se procesan en tu propio equipo; no se envían a ningún servicio externo.
