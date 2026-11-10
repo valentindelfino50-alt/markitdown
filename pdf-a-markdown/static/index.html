@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF a Markdown</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --txt: #1d2330; --sub: #5b6475; --line: #dfe3ea;
+    --acc: #2457d6; --acc-txt: #ffffff; --ok: #1a7f4b; --ok-bg: #e4f5ec;
+    --pen: #8a5a00; --pen-bg: #fdf1d8; --err: #b3261e; --err-bg: #fbe5e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b1f27; --txt: #e8ebf2; --sub: #9aa3b5; --line: #2c3340;
+      --acc: #6f97ff; --acc-txt: #0c1222; --ok: #5fd39a; --ok-bg: #16301f;
+      --pen: #f0c25f; --pen-bg: #3a2f12; --err: #ff8f87; --err-bg: #3b1b19;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt);
+         font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 4px 0 2px; }
+  .sub { color: var(--sub); margin: 0 0 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+          padding: 16px; margin-bottom: 16px; }
+  .drop { display: block; text-align: center; border: 2px dashed var(--line); border-radius: 12px;
+          padding: 28px 12px; cursor: pointer; color: var(--sub); }
+  .drop.sobre { border-color: var(--acc); color: var(--acc); }
+  .drop strong { display: block; font-size: 1.1rem; color: var(--txt); margin-bottom: 4px; }
+  .drop input { display: none; }
+  button, .btn { appearance: none; border: 0; border-radius: 10px; padding: 12px 18px; min-height: 44px;
+                 background: var(--acc); color: var(--acc-txt); font: inherit; font-weight: 600;
+                 cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.sec, .btn.sec { background: transparent; color: var(--acc); border: 1px solid var(--line); }
+  .fila { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .barra { height: 8px; background: var(--line); border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .barra > div { height: 100%; width: 0; background: var(--acc); transition: width .2s; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 12px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  .nombre { font-weight: 600; word-break: break-word; }
+  .meta { color: var(--sub); font-size: .85rem; }
+  .acciones { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .acciones .btn, .acciones button { padding: 8px 14px; min-height: 38px; font-size: .9rem; }
+  .tag { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-left: 6px; white-space: nowrap; }
+  .tag.ok { color: var(--ok); background: var(--ok-bg); }
+  .tag.pen { color: var(--pen); background: var(--pen-bg); }
+  .msg { margin-top: 10px; font-size: .9rem; }
+  .msg.err { color: var(--err); background: var(--err-bg); padding: 8px 12px; border-radius: 8px; }
+  .vacio { color: var(--sub); text-align: center; padding: 18px 0 6px; }
+  code { font-size: .8rem; word-break: break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PDF a Markdown</h1>
+  <p class="sub">Sube tus PDFs y conviértelos con un clic.</p>
+
+  <section class="card">
+    <label class="drop" id="drop">
+      <strong>Toca aquí para elegir PDFs</strong>
+      o arrástralos hasta este recuadro
+      <input id="archivo" type="file" accept="application/pdf,.pdf" multiple>
+    </label>
+    <div class="barra" id="barraSubida" hidden><div></div></div>
+    <div class="msg" id="msgSubida"></div>
+  </section>
+
+  <section class="card">
+    <div class="fila">
+      <div>
+        <div class="nombre">Archivos</div>
+        <div class="meta" id="resumen">Cargando…</div>
+      </div>
+      <button id="convertirTodo" disabled>Convertir pendientes</button>
+    </div>
+    <div class="barra" id="barraConv" hidden><div></div></div>
+    <div class="msg" id="msgConv"></div>
+    <ul id="lista"></ul>
+  </section>
+
+  <p class="meta">Los PDF se guardan en <code id="rutaEntrada"></code><br>
+     y los Markdown en <code id="rutaSalida"></code></p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let estado = null;
+
+const fmtTam = (b) => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + " KB" : (b / 1048576).toFixed(1) + " MB";
+const fmtFecha = (t) => new Date(t * 1000).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" });
+
+async function pedir(url, opciones) {
+  const r = await fetch(url, opciones);
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(datos.error || "Error " + r.status);
+  return datos;
+}
+
+function render() {
+  const { pdfs, trabajo } = estado;
+  const pendientes = pdfs.filter((p) => !p.convertido);
+  $("rutaEntrada").textContent = estado.carpeta_entrada;
+  $("rutaSalida").textContent = estado.carpeta_salida;
+  $("resumen").textContent = pdfs.length
+    ? `${pdfs.length} PDF · ${pendientes.length} ${pendientes.length === 1 ? "pendiente" : "pendientes"}`
+    : "Todavía no hay archivos";
+  $("convertirTodo").disabled = trabajo.corriendo || pendientes.length === 0;
+  $("convertirTodo").textContent = trabajo.corriendo
+    ? "Convirtiendo…" : `Convertir pendientes (${pendientes.length})`;
+
+  const barra = $("barraConv");
+  barra.hidden = !trabajo.corriendo;
+  barra.firstElementChild.style.width = trabajo.total ? (100 * trabajo.hechos / trabajo.total) + "%" : "0";
+  const msg = $("msgConv");
+  msg.className = "msg"; msg.textContent = "";
+  if (trabajo.corriendo) {
+    msg.textContent = `Convirtiendo ${trabajo.hechos + 1} de ${trabajo.total}: ${trabajo.actual || ""}`;
+  } else if (trabajo.errores.length) {
+    msg.className = "msg err";
+    msg.textContent = trabajo.errores.map((e) => `${e.nombre}: ${e.error}`).join("\n");
+    msg.style.whiteSpace = "pre-line";
+  }
+
+  const ul = $("lista");
+  ul.replaceChildren();
+  if (!pdfs.length) {
+    const v = document.createElement("div");
+    v.className = "vacio"; v.textContent = "Sube tu primer PDF arriba.";
+    ul.append(v);
+  }
+  for (const p of pdfs) {
+    const li = document.createElement("li");
+    const n = document.createElement("div"); n.className = "nombre"; n.textContent = p.nombre;
+    const tag = document.createElement("span");
+    tag.className = "tag " + (p.convertido ? "ok" : "pen");
+    tag.textContent = p.convertido ? "Convertido" : "Pendiente";
+    n.append(tag);
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = `${fmtTam(p.tam)} · ${fmtFecha(p.fecha)}`;
+    const a = document.createElement("div"); a.className = "acciones";
+    if (p.convertido) {
+      const url = "/api/md/" + encodeURIComponent(p.md);
+      a.append(enlace("Ver", url, true), enlace("Descargar .md", url + "?descargar=1", false));
+    }
+    const b = document.createElement("button");
+    b.className = "sec"; b.disabled = trabajo.corriendo;
+    b.textContent = p.convertido ? "Reconvertir" : "Convertir";
+    b.onclick = () => convertir([p.nombre]);
+    a.append(b);
+    li.append(n, m, a);
+    ul.append(li);
+  }
+}
+
+function enlace(texto, href, nueva) {
+  const a = document.createElement("a");
+  a.className = "btn sec"; a.textContent = texto; a.href = href;
+  if (nueva) a.target = "_blank";
+  return a;
+}
+
+async function refrescar() {
+  try { estado = await pedir("/api/estado"); render(); }
+  catch (e) { $("resumen").textContent = "Sin conexión con la app: " + e.message; }
+  setTimeout(refrescar, estado && estado.trabajo.corriendo ? 1000 : 5000);
+}
+
+async function convertir(archivos) {
+  try {
+    await pedir("/api/convertir", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(archivos ? { archivos } : {}),
+    });
+    estado = await pedir("/api/estado"); render();
+  } catch (e) {
+    const m = $("msgConv"); m.className = "msg err"; m.textContent = e.message;
+  }
+}
+$("convertirTodo").onclick = () => convertir(null);
+
+function subir(files) {
+  const pdfs = [...files];
+  if (!pdfs.length) return;
+  const datos = new FormData();
+  pdfs.forEach((f) => datos.append("archivos", f));
+  const barra = $("barraSubida"), msg = $("msgSubida");
+  barra.hidden = false; barra.firstElementChild.style.width = "0";
+  msg.className = "msg"; msg.textContent = `Subiendo ${pdfs.length} archivo(s)…`;
+  const x = new XMLHttpRequest();
+  x.open("POST", "/api/subir");
+  x.upload.onprogress = (e) => {
+    if (e.lengthComputable) barra.firstElementChild.style.width = (100 * e.loaded / e.total) + "%";
+  };
+  x.onload = () => {
+    barra.hidden = true;
+    let r = {}; try { r = JSON.parse(x.responseText); } catch (_) {}
+    if (x.status !== 200) {
+      msg.className = "msg err";
+      msg.textContent = x.status === 413 ? "Los archivos son demasiado grandes (máx. 300 MB)." : "No se pudo subir.";
+    } else {
+      const rech = (r.rechazados || []).map((z) => `${z.nombre}: ${z.motivo}`).join(" · ");
+      msg.className = "msg" + (rech ? " err" : "");
+      msg.textContent = `Subidos: ${r.guardados.length}.` + (rech ? " Rechazados: " + rech : "");
+    }
+    $("archivo").value = "";
+    refrescarYa();
+  };
+  x.onerror = () => { barra.hidden = true; msg.className = "msg err"; msg.textContent = "Falló la subida. Revisa tu conexión."; };
+  x.send(datos);
+}
+async function refrescarYa() { try { estado = await pedir("/api/estado"); render(); } catch (_) {} }
+
+$("archivo").onchange = (e) => subir(e.target.files);
+const drop = $("drop");
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("sobre"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("sobre"); }));
+drop.addEventListener("drop", (e) => subir(e.dataTransfer.files));
+
+refrescar();
+</script>
+</body>
+</html>
