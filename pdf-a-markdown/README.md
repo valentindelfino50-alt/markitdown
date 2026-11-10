@@ -8,7 +8,7 @@ App sencilla sobre [MarkItDown](../README.md): subes PDFs y los conviertes a Mar
 
 ## Cómo usarla en tu PC
 
-1. Instala **Python 3.10 o superior** desde <https://www.python.org/downloads/> (en Windows, marca *Add python.exe to PATH*).
+1. Instala **Python 3.13** (o cualquier versión de 3.10 a 3.14) desde <https://www.python.org/downloads/>. **No uses 3.15**: MarkItDown todavía no lo soporta. Si ya tienes una versión más nueva, puedes instalar 3.13 al lado; el lanzador elige la compatible solo.
 2. Haz doble clic en:
    - **Windows:** `iniciar.bat`
    - **Mac / Linux:** `./iniciar.sh`

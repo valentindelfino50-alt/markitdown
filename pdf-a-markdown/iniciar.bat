@@ -9,13 +9,26 @@ set "VENV=%LOCALAPPDATA%\pdf-a-markdown\venv"
 if exist "%VENV%\.listo" goto ejecutar
 
 echo Primera vez: preparando el programa. Puede tardar unos minutos...
-where py >nul 2>nul
-if %errorlevel%==0 (
-  py -3 -m venv "%VENV%"
-) else (
-  python -m venv "%VENV%"
+
+rem MarkItDown funciona con Python 3.10 a 3.14. Se busca una version compatible
+rem aunque tengas instalada otra mas nueva (por ejemplo 3.15).
+set "PYCMD="
+for %%V in (3.13 3.12 3.11 3.14 3.10) do (
+  if not defined PYCMD (
+    py -%%V -c "import sys" >nul 2>nul
+    if not errorlevel 1 set "PYCMD=py -%%V"
+  )
 )
+if defined PYCMD goto crearvenv
+
+python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,14) else 1)" >nul 2>nul
 if errorlevel 1 goto sinpython
+set "PYCMD=python"
+
+:crearvenv
+echo Usando: %PYCMD%
+%PYCMD% -m venv --clear "%VENV%"
+if errorlevel 1 goto fallo
 "%VENV%\Scripts\python.exe" -m pip install --quiet --upgrade pip
 "%VENV%\Scripts\python.exe" -m pip install --quiet -r requirements.txt
 if errorlevel 1 goto fallo
@@ -27,8 +40,8 @@ goto fin
 
 :sinpython
 echo.
-echo No se encontro Python 3.10 o superior.
-echo Instalalo desde https://www.python.org/downloads/ y marca la casilla "Add python.exe to PATH".
+echo No se encontro una version compatible de Python (se necesita de 3.10 a 3.14).
+echo Instala Python 3.13 desde https://www.python.org/downloads/windows/ y vuelve a abrir este archivo.
 goto fin
 
 :fallo
