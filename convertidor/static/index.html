@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Convertidor a Markdown</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --texto: #1c1f26; --suave: #667085; --borde: #e1e4ea;
+    --primario: #2457d6; --primario-t: #fff;
+    --ok: #137a3f; --ok-bg: #e3f5ea; --err: #b42318; --err-bg: #fde8e6;
+    --aviso: #8a5a00; --aviso-bg: #fff1d6; --info: #1e4fc2; --info-bg: #e5edfd; --gris-bg: #eceef2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --card: #1e2127; --texto: #e8eaee; --suave: #9aa1ad; --borde: #2f343c;
+      --primario: #5b87f0; --primario-t: #0c1220;
+      --ok: #5fd08f; --ok-bg: #12301f; --err: #ff8a80; --err-bg: #3a1815;
+      --aviso: #f2c46d; --aviso-bg: #382a0c; --info: #8fb0ff; --info-bg: #17233f; --gris-bg: #2a2e36;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--texto);
+         font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.3rem; margin: 4px 0 14px; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--borde); background: var(--card);
+           color: var(--texto); border-radius: 10px; padding: 10px 14px; min-height: 44px; }
+  .boton { display: inline-flex; align-items: center; border: 1px solid var(--borde); border-radius: 10px; padding: 8px 12px;
+           min-height: 40px; text-decoration: none; color: var(--texto); }
+  .boton.primario, button.primario { background: var(--primario); color: var(--primario-t); border-color: transparent; font-weight: 600; }
+  button.peligro { color: var(--err); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, .zona:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
+
+  .zona { display: block; border: 2px dashed var(--borde); border-radius: 14px; background: var(--card);
+          padding: 22px 16px; text-align: center; cursor: pointer; }
+  .zona.arrastrando { border-color: var(--primario); background: var(--info-bg); }
+  .zona strong { display: block; font-size: 1.05rem; }
+  .zona span { color: var(--suave); font-size: .9rem; }
+  .zona input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .progreso { height: 8px; border-radius: 4px; background: var(--gris-bg); margin-top: 12px; overflow: hidden; display: none; }
+  .progreso > div { height: 100%; width: 0; background: var(--primario); transition: width .2s; }
+
+  .barra { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
+  .barra .espacio { flex: 1; }
+
+  .item { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 12px 14px; margin-top: 10px; }
+  .fila { display: flex; align-items: flex-start; gap: 10px; }
+  .nombre { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--suave); font-size: .85rem; margin-top: 2px; }
+  .badge { font-size: .8rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: var(--gris-bg); }
+  .b-en_cola { background: var(--info-bg); color: var(--info); }
+  .b-convirtiendo { background: var(--info-bg); color: var(--info); }
+  .b-pausado { background: var(--aviso-bg); color: var(--aviso); }
+  .b-listo { background: var(--ok-bg); color: var(--ok); }
+  .b-error { background: var(--err-bg); color: var(--err); }
+  .msg { margin-top: 8px; font-size: .88rem; color: var(--err); overflow-wrap: anywhere; }
+  .msg.aviso { color: var(--aviso); }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .acciones button { padding: 8px 12px; min-height: 40px; }
+  .giro { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px;
+          background: var(--info); animation: pulso 1.2s ease-in-out infinite; }
+  @keyframes pulso { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .giro { animation: none; } }
+  .vacio { text-align: center; color: var(--suave); padding: 26px 8px; }
+  #aviso { display: none; background: var(--err-bg); color: var(--err); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  #toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--texto); color: var(--bg);
+           padding: 10px 16px; border-radius: 10px; max-width: 90vw; display: none; z-index: 5; }
+  footer { color: var(--suave); font-size: .8rem; text-align: center; margin: 22px 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Convertidor a Markdown</h1>
+  <div id="aviso" role="alert">Se perdió la conexión con la PC. Reintentando…</div>
+
+  <label class="zona" id="zona" tabindex="0">
+    <input type="file" id="archivos" multiple accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.json,.xml,.html,.htm,.txt,.epub,.msg,.zip">
+    <strong>Tocá para elegir archivos</strong>
+    <span>o arrastralos acá · PDF, Word, PowerPoint, Excel…</span>
+    <div class="progreso" id="progreso"><div id="barra-progreso"></div></div>
+  </label>
+
+  <div class="barra" id="barra"></div>
+  <div id="lista"></div>
+  <footer id="pie"></footer>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const ESTADOS = { subido: "Subido", en_cola: "En cola", convirtiendo: "Convirtiendo", pausado: "Pausado", listo: "Listo", error: "Error" };
+const ACCIONES = {
+  subido: ["convertir", "eliminar"],
+  en_cola: ["pausar", "eliminar"],
+  convirtiendo: ["pausar", "reiniciar", "eliminar"],
+  pausado: ["reanudar", "reiniciar", "eliminar"],
+  listo: ["descargar", "reiniciar", "eliminar"],
+  error: ["reiniciar", "eliminar"],
+};
+const ETIQUETA = { convertir: "Convertir", pausar: "⏸ Pausar", reanudar: "▶ Reanudar", reiniciar: "↻ Reiniciar", descargar: "⬇ Descargar", eliminar: "Eliminar" };
+
+const $ = (id) => document.getElementById(id);
+let trabajos = [];
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function tamano(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB"; }
+function reloj(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = "none", 4500); }
+
+async function api(url, opciones) {
+  const r = await fetch(url, opciones);
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(datos.error || "Algo salió mal (" + r.status + ")");
+  return datos;
+}
+
+function dibujar() {
+  const hay = { subido: 0, listo: 0, terminados: 0 };
+  trabajos.forEach((t) => { if (t.estado === "subido") hay.subido++; if (t.estado === "listo") hay.listo++; if (t.estado === "listo" || t.estado === "error") hay.terminados++; });
+
+  $("barra").innerHTML =
+    (hay.subido ? `<button class="primario" data-global="convertir">Convertir ${hay.subido > 1 ? "los " + hay.subido + " subidos" : "el archivo subido"}</button>` : "") +
+    (hay.listo ? `<button data-global="zip">⬇ Descargar todo (.zip)</button>` : "") +
+    '<span class="espacio"></span>' +
+    (hay.terminados ? `<button data-global="limpiar">Quitar terminados</button>` : "") +
+    (trabajos.length ? `<button class="peligro" data-global="todo">Eliminar todo</button>` : "");
+
+  $("lista").innerHTML = trabajos.length ? trabajos.map((t) => {
+    const acc = ACCIONES[t.estado].map((a) =>
+      a === "descargar"
+        ? `<a class="boton primario" href="/api/trabajos/${t.id}/descargar">${ETIQUETA[a]}</a>`
+        : `<button data-accion="${a}" data-id="${t.id}" class="${a === "eliminar" ? "peligro" : a === "convertir" ? "primario" : ""}">${ETIQUETA[a]}</button>`
+    ).join("");
+    const tiempo = t.estado === "convirtiendo"
+      ? ` · <span data-inicio="${Date.now() - (t.transcurrido || 0) * 1000}"></span>`
+      : t.transcurrido != null && t.estado === "listo" ? ` · tardó ${reloj(t.transcurrido)}` : "";
+    return `<div class="item">
+      <div class="fila"><div class="nombre">${esc(t.nombre)}<div class="meta">${tamano(t.tamano)}${tiempo}</div></div>
+      <span class="badge b-${t.estado}">${t.estado === "convirtiendo" ? '<span class="giro"></span>' : ""}${ESTADOS[t.estado]}</span></div>
+      ${t.error ? `<div class="msg ${t.estado === "pausado" || t.estado === "listo" ? "aviso" : ""}">${esc(t.error)}</div>` : ""}
+      <div class="acciones">${acc}</div></div>`;
+  }).join("") : '<div class="vacio">Todavía no subiste archivos.</div>';
+  tick();
+}
+
+function tick() {
+  document.querySelectorAll("[data-inicio]").forEach((el) => { el.textContent = "convirtiendo hace " + reloj((Date.now() - el.dataset.inicio) / 1000); });
+}
+setInterval(tick, 1000);
+
+async function refrescar() {
+  try {
+    const d = await api("/api/trabajos");
+    trabajos = d.trabajos;
+    $("pie").textContent = "Versión " + d.version;
+    $("aviso").style.display = "none";
+    dibujar();
+  } catch (e) {
+    $("aviso").style.display = "block";
+  }
+}
+
+async function accion(fn) {
+  try { await fn(); } catch (e) { toast(e.message); }
+  refrescar();
+}
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  if (b.dataset.accion) {
+    const t = trabajos.find((x) => x.id === b.dataset.id);
+    const a = b.dataset.accion;
+    if (a === "eliminar") {
+      if (!confirm("¿Eliminar «" + (t ? t.nombre : "este archivo") + "»? Se borra el archivo subido y su resultado.")) return;
+      accion(() => api("/api/trabajos/" + b.dataset.id, { method: "DELETE" }));
+    } else {
+      if (a === "reiniciar" && t && t.estado === "listo" && !confirm("Esto descarta el resultado actual y vuelve a convertir. ¿Seguir?")) return;
+      accion(() => api("/api/trabajos/" + b.dataset.id + "/" + a, { method: "POST" }));
+    }
+  } else if (b.dataset.global) {
+    const g = b.dataset.global;
+    if (g === "convertir") accion(() => api("/api/convertir", { method: "POST" }));
+    else if (g === "zip") location.href = "/api/descargar-todo.zip";
+    else {
+      const ids = trabajos.filter((t) => g === "todo" || t.estado === "listo" || t.estado === "error").map((t) => t.id);
+      const msg = g === "todo" ? "¿Eliminar TODOS los archivos (" + ids.length + ") y sus resultados?" : "¿Quitar los " + ids.length + " archivos terminados? Descargá antes lo que quieras conservar.";
+      if (ids.length && confirm(msg)) accion(() => api("/api/eliminar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }));
+    }
+  }
+});
+
+// ---- subida (con barra de progreso, útil con PDFs grandes desde el celular)
+function subir(files) {
+  if (!files.length) return;
+  const datos = new FormData();
+  [...files].forEach((f) => datos.append("archivos", f));
+  const caja = $("progreso"), barra = $("barra-progreso");
+  caja.style.display = "block"; barra.style.width = "0";
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/subir");
+  xhr.upload.onprogress = (e) => { if (e.lengthComputable) barra.style.width = (100 * e.loaded / e.total) + "%"; };
+  xhr.onload = () => {
+    caja.style.display = "none";
+    let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
+    if (xhr.status !== 200) toast(r.error || "No se pudo subir (" + xhr.status + ")");
+    else if ((r.rechazados || []).length) toast("No se subió: " + r.rechazados.map((x) => x.nombre + " (" + x.motivo + ")").join(", "));
+    refrescar();
+  };
+  xhr.onerror = () => { caja.style.display = "none"; toast("Falló la subida. ¿Sigue conectada la PC?"); };
+  xhr.send(datos);
+}
+$("archivos").addEventListener("change", (e) => { subir(e.target.files); e.target.value = ""; });
+const zona = $("zona");
+zona.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("archivos").click(); } });
+["dragenter", "dragover"].forEach((n) => zona.addEventListener(n, (e) => { e.preventDefault(); zona.classList.add("arrastrando"); }));
+["dragleave", "drop"].forEach((n) => zona.addEventListener(n, (e) => { e.preventDefault(); zona.classList.remove("arrastrando"); }));
+zona.addEventListener("drop", (e) => subir(e.dataTransfer.files));
+
+refrescar();
+setInterval(refrescar, 2000);
+</script>
+</body>
+</html>
