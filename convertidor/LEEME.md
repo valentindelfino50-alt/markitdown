@@ -41,7 +41,20 @@ La PC tiene que estar encendida y con la app abierta. Fuera de tu Wi-Fi no se ll
   Cada `.md` terminado se copia ahí y aparece solo en Drive del celular. Eliminar un archivo en la app **no** borra esa copia.
 - **Alternativa sin config:** bajá el `.md` (o el `.zip`) desde el navegador del celular y se guarda en Descargas.
 
-## 4. Actualizar la app en la PC
+## 4. Que arranque sola con la PC y tener un acceso directo
+
+1. Abri `iniciar.bat` al menos una vez (para preparar la app) y cerra su ventana negra.
+2. Doble clic en **`crear_accesos.bat`**. Hace tres cosas:
+   - **Inicio automatico:** cada vez que inicies sesion en Windows la app arranca sola, **sin ventana negra**.
+   - **Acceso directo en el escritorio** llamado **Convertidor**, que abre la pagina en tu navegador.
+   - Arranca la app ahora mismo, sin esperar a reiniciar.
+3. Desde el celular, la direccion aparece al pie de la pagina ("Desde el celular: http://...").
+
+Para **detener** la app: doble clic en `detener.bat`. Para **quitar el inicio automatico**: `quitar_inicio_automatico.bat`. Si algo falla al arrancar sola, mira el archivo `%LOCALAPPDATA%\Convertidor\servidor.log`.
+
+Importante: arranca cuando **inicias sesion** en Windows (no antes) y la PC no puede estar **suspendida**: en Configuracion -> Sistema -> Inicio/apagado y suspension, poné "Nunca" para cuando esta enchufada.
+
+## 5. Actualizar la app en la PC
 
 1. **Cerrá la ventana negra** de la app.
 2. Descargá de nuevo el ZIP de GitHub (paso 1 de arriba).
@@ -53,7 +66,7 @@ No perdés nada: tus archivos y resultados están en `%LOCALAPPDATA%\Convertidor
 
 **Si venías usando otra versión de la app:** antes de iniciar esta, cerrá la anterior (si quedó colgada: `Ctrl+Shift+Esc` → buscá `python` o la app → *Finalizar tarea*). Si no, esta puede avisar que el puerto 8000 está ocupado. Los archivos que habías subido en la versión anterior no se traen solos: volvé a subirlos.
 
-## 5. Si algo se traba
+## 6. Si algo se traba
 
 | Situación | Qué hacer |
 |---|---|
@@ -66,7 +79,7 @@ No perdés nada: tus archivos y resultados están en `%LOCALAPPDATA%\Convertidor
 | Al instalar: *"conflicting dependencies"* / *ResolutionImpossible* | Tenés Python 3.15 (o muy viejo). Instalá la 3.13 y abrí `iniciar.bat` de nuevo: rehace el entorno solo. |
 | "No se pudo abrir el puerto 8000" | Ya hay otra copia abierta; cerrala o cambiá `PUERTO` en `config.env`. |
 
-## 6. Configuración (`config.env`, opcional)
+## 7. Configuración (`config.env`, opcional)
 
 Ver `config.ejemplo.env`: `PUERTO`, `TIEMPO_MAX_MIN`, `COPIAR_A`, `CLAVE` (pide clave al abrir la página; útil si tu Wi-Fi no es solo tuyo), `DATOS_DIR`, `MAX_MB`.
 

@@ -155,7 +155,7 @@ async function refrescar() {
   try {
     const d = await api("/api/trabajos");
     trabajos = d.trabajos;
-    $("pie").textContent = "Versión " + d.version;
+    $("pie").textContent = "Versión " + d.version + (d.celular ? " · Desde el celular: " + d.celular : "");
     $("aviso").style.display = "none";
     dibujar();
   } catch (e) {

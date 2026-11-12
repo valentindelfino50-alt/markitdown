@@ -221,6 +221,7 @@ def test_api(tmp_path):
         assert c.post("/api/trabajos/nope/pausar").status_code == 404
         assert c.delete(f"/api/trabajos/{jid}").status_code == 200
         assert c.get("/api/trabajos").json["trabajos"] == []
+        assert c.get("/api/trabajos").json["celular"].startswith("http://")
     finally:
         m.detener()
 

@@ -89,7 +89,12 @@ def create_app(manager: JobManager) -> Flask:
 
     @app.get("/api/trabajos")
     def listar():
-        return jsonify(trabajos=manager.listar(), version=VERSION)
+        puerto = request.environ.get("SERVER_PORT", "8000")
+        return jsonify(
+            trabajos=manager.listar(),
+            version=VERSION,
+            celular=f"http://{ip_local()}:{puerto}",
+        )
 
     @app.post("/api/subir")
     def subir():
