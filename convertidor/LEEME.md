@@ -17,7 +17,7 @@ Convierte PDF, Word, PowerPoint, Excel, etc. a Markdown (`.md`). Corre en tu PC 
 
 1. En GitHub, repo `valentindelfino50-alt/markitdown`, rama `claude/dazzling-cori-va7hr5`: **Code → Download ZIP**. Descomprimilo.
 2. Copiá **solo la carpeta `convertidor`** a donde quieras. Puede ser dentro de Google Drive (ej. `Mi unidad\Convertidor`) para tenerla en todos tus dispositivos.
-3. Necesitás **Python entre la 3.10 y la 3.14** (recomendado: **3.13**). **La 3.15 todavía no sirve**: uno de los componentes (`onnxruntime`) no tiene versión para ella. Bajalo de [python.org/downloads/windows](https://www.python.org/downloads/windows/) o, desde la consola de Windows, con `winget install Python.Python.3.13`. Al instalarlo, marcá **"Add python.exe to PATH"**. Podés tener varias versiones instaladas a la vez: `iniciar.bat` elige una compatible.
+3. Necesitás **Python entre la 3.10 y la 3.14** (recomendado: **3.13**). **La 3.15 todavía no sirve**: uno de los componentes (`onnxruntime`) no tiene versión para ella. Bajalo de [python.org/downloads/windows](https://www.python.org/downloads/windows/) o, desde la consola de Windows, con `winget install Python.Python.3.13`. Al instalarlo, marcá **"Add python.exe to PATH"**. Tiene que ser de **64 bits** (en la página: *Windows installer (64-bit)*). Podés tener varias versiones instaladas a la vez: `iniciar.bat` elige una compatible. Si algo falla, muestra el detalle completo y lo guarda en `%LOCALAPPDATA%\Convertidor\instalacion.log`.
 4. Doble clic en **`iniciar.bat`**. La primera vez descarga los componentes (unos minutos). Si Windows pregunta por el firewall, permití el acceso en **redes privadas**: es lo que deja entrar al celular.
 5. Se abre una ventana negra con las direcciones. **Esa ventana es la app: si la cerrás, la app se apaga.**
 
@@ -62,6 +62,7 @@ No perdés nada: tus archivos y resultados están en `%LOCALAPPDATA%\Convertidor
 | *Error: No se encontró texto…* | El PDF es una imagen escaneada: no tiene texto para extraer. |
 | Pausé o reinicié y empezó de cero | Es lo esperado: una conversión a medias no se puede retomar donde quedó. |
 | El celular no abre la dirección | Revisá que estén en el mismo Wi-Fi y que el firewall permita redes privadas. |
+| Al instalar: *"conflicting dependencies"* con Python de **32 bits** | Hace falta la de **64 bits** (un componente no existe para 32). Instalá la 3.13 de 64 bits; `iniciar.bat` rehace el entorno solo. |
 | Al instalar: *"conflicting dependencies"* / *ResolutionImpossible* | Tenés Python 3.15 (o muy viejo). Instalá la 3.13 y abrí `iniciar.bat` de nuevo: rehace el entorno solo. |
 | "No se pudo abrir el puerto 8000" | Ya hay otra copia abierta; cerrala o cambiá `PUERTO` en `config.env`. |
 
